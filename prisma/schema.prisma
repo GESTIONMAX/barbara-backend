@@ -1,6 +1,3 @@
-// Prisma schema file for Barbara Décor
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -11,39 +8,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  bookings  Booking[]
+model balloon_colors {
+  id         String       @id
+  name       String
+  hex        String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  cart_items cart_items[] @relation("BalloonColorToCartItem")
 }
 
-model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
+model cart_items {
+  id             String           @id
+  packId         String
+  startDate      DateTime
+  endDate        DateTime
+  deliveryOption Boolean          @default(false)
+  customMessage  String?
+  userId         String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+
+  pack           Pack             @relation(fields: [packId], references: [id])
+  users          users?           @relation(fields: [userId], references: [id])
+  balloon_colors balloon_colors[] @relation("BalloonColorToCartItem")
+}
+
+model claims {
+  id          String      @id
+  title       String
   description String?
-  price       Float
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      ClaimStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+  userId      String
+  users       users       @relation(fields: [userId], references: [id])
 }
 
-model Booking {
-  id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int
-  date        DateTime
-  status      String   @default("pending")
-  createdAt   DateTime @default(now())
-}
-
-model Service {
-  id          Int      @id @default(autoincrement())
+model conseil_requests {
+  id          String        @id
   name        String
-  description String?
-  price       Float
-  duration    Int      // durée en minutes
-  createdAt   DateTime @default(now())
+  firstName   String?
+  lastName    String?
+  email       String
+  phone       String
+  company     String?
+  eventType   String
+  eventDate   DateTime
+  guestCount  Int
+  location    String
+  budget      String
+  description String
+  status      ConseilStatus @default(pending)
+  createdAt   DateTime      @default(now())
+  userId      String?
+  users       users?        @relation(fields: [userId], references: [id])
 }
 
+model faq_items {
+  id        String      @id
+  question  String
+  answer    String
+  category  FAQCategory
+  createdAt DateTime    @default(now())
+  updatedAt DateTime
+}
+
+model Pack {
+  id           String         @id
+  name         String
+  category     PackCategory
+  description  String
+  price        Float
+  images       String[]
+  features     String[]
+  rating       Float          @default(0)
+  reviewCount  Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  cart_items   cart_items[]
+  reservations reservations[]
+
+  @@map("packs") // conserve le nom de la table en base
+}
+
+model reservations {
+  id            String            @id
+  packId        String
+  startDate     DateTime
+  endDate       DateTime
+  clientName    String
+  clientEmail   String
+  clientPhone   String
+  customMessage String?
+  status        ReservationStatus @default(pending)
+  createdAt     DateTime          @default(now())
+  userId        String?
+
+  pack          Pack              @relation(fields: [packId], references: [id])
+  users         users?            @relation(fields: [userId], references: [id])
+}
+
+
+model users {
+  id               String             @id
+  name             String
+  email            String             @unique
+  password         String
+  role             UserRole           @default(user)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  cart_items       cart_items[]
+  claims           claims[]
+  conseil_requests conseil_requests[]
+  reservations     reservations[]
+}
+
+enum ClaimStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum ConseilStatus {
+  pending
+  inProgress
+  completed
+}
+
+enum FAQCategory {
+  general
+  packs
+  reservation
+  personnalisation
+  payment
+}
+
+enum PackCategory {
+  anniversaire
+  mariage
+  entreprise
+  autre
+  anniversaireballons
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+enum UserRole {
+  user
+  admin
+}
