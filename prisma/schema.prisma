@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -8,29 +7,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id               String             @id @default(cuid())
+  name             String
+  email            String             @unique
+  password         String
+  role             UserRole           @default(user)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  cart_items       cart_items[]
+  claims           claims[]
+  conseil_requests conseil_requests[]
+  reservations     reservations[]
+
+  @@map("users")
+}
+
+model BalloonColorToCartItem {
+  A              String
+  B              String
+  balloon_colors balloon_colors @relation(fields: [A], references: [id], onDelete: Cascade)
+  cart_items     cart_items     @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B], map: "_BalloonColorToCartItem_AB_pkey")
+  @@index([B], map: "_BalloonColorToCartItem_B_index")
+  @@map("_BalloonColorToCartItem")
+}
+
 model balloon_colors {
-  id         String       @id
-  name       String
-  hex        String
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime
-  cart_items cart_items[] @relation("BalloonColorToCartItem")
+  id                     String                   @id
+  name                   String
+  hex                    String
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  BalloonColorToCartItem BalloonColorToCartItem[]
 }
 
 model cart_items {
-  id             String           @id
-  packId         String
-  startDate      DateTime
-  endDate        DateTime
-  deliveryOption Boolean          @default(false)
-  customMessage  String?
-  userId         String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-
-  pack           Pack             @relation(fields: [packId], references: [id])
-  users          users?           @relation(fields: [userId], references: [id])
-  balloon_colors balloon_colors[] @relation("BalloonColorToCartItem")
+  id                     String                   @id
+  packId                 String
+  startDate              DateTime
+  endDate                DateTime
+  deliveryOption         Boolean                  @default(false)
+  customMessage          String?
+  userId                 String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  BalloonColorToCartItem BalloonColorToCartItem[]
+  packs                  packs                    @relation(fields: [packId], references: [id])
+  users                  User?                    @relation(fields: [userId], references: [id])
 }
 
 model claims {
@@ -41,7 +66,7 @@ model claims {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime
   userId      String
-  users       users       @relation(fields: [userId], references: [id])
+  users       User        @relation(fields: [userId], references: [id])
 }
 
 model conseil_requests {
@@ -61,7 +86,7 @@ model conseil_requests {
   status      ConseilStatus @default(pending)
   createdAt   DateTime      @default(now())
   userId      String?
-  users       users?        @relation(fields: [userId], references: [id])
+  users       User?         @relation(fields: [userId], references: [id])
 }
 
 model faq_items {
@@ -73,8 +98,8 @@ model faq_items {
   updatedAt DateTime
 }
 
-model Pack {
-  id           String         @id
+model packs {
+  id           String         @id @default(cuid())
   name         String
   category     PackCategory
   description  String
@@ -87,8 +112,6 @@ model Pack {
   updatedAt    DateTime
   cart_items   cart_items[]
   reservations reservations[]
-
-  @@map("packs") // conserve le nom de la table en base
 }
 
 model reservations {
@@ -103,24 +126,8 @@ model reservations {
   status        ReservationStatus @default(pending)
   createdAt     DateTime          @default(now())
   userId        String?
-
-  pack          Pack              @relation(fields: [packId], references: [id])
-  users         users?            @relation(fields: [userId], references: [id])
-}
-
-
-model users {
-  id               String             @id
-  name             String
-  email            String             @unique
-  password         String
-  role             UserRole           @default(user)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  cart_items       cart_items[]
-  claims           claims[]
-  conseil_requests conseil_requests[]
-  reservations     reservations[]
+  packs         packs             @relation(fields: [packId], references: [id])
+  users         User?             @relation(fields: [userId], references: [id])
 }
 
 enum ClaimStatus {

@@ -7,6 +7,7 @@ dotenv.config();
 
 // Routes
 import packRoutes from './routes/packRoutes';
+import authRoutes from './routes/authRoutes';
 
 // Middleware
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -31,6 +32,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
+      auth: '/api/auth',
       packs: '/api/packs'
     }
   });
@@ -47,6 +49,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes API
+app.use('/api/auth', authRoutes);
 app.use('/api/packs', packRoutes);
 
 // Middleware d'erreur (à la fin)

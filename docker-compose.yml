@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: barbara-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: barbara_db
+      POSTGRES_USER: barbara_user
+      POSTGRES_PASSWORD: barbara_password_2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barbara_user -d barbara_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local

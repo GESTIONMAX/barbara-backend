@@ -1,38 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ES2020", // Plus moderne qu'ES2016
-    "module": "ESNext", // Support modules ES natifs
-    "lib": ["ES2020", "DOM", "DOM.Iterable"], // APIs modernes + DOM
-    "moduleResolution": "bundler", // Pour Vite/Webpack modernes
-    
-    // Développement
-    "sourceMap": true,
-    "declaration": true,
-    "outDir": "./dist",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
     "rootDir": "./src",
-    
-    // Qualité du code
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    
-    // Résolution de modules
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"]
-    },
-    
-    // Support JSX si React/Vue
-    "jsx": "react-jsx", // ou "preserve" pour Vue
-    "allowSyntheticDefaultImports": true,
-    
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "ts-node": {
+    "esm": false,
+    "transpileOnly": true
+  }
 }
