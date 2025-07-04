@@ -10,8 +10,8 @@ COPY package*.json ./
 # Copie de tous les fichiers source d'abord
 COPY . .
 
-# Installation des dépendances (remplacer npm ci par npm install)
-RUN npm install
+# Installation des dépendances en désactivant les hooks husky
+RUN npm install --ignore-scripts
 
 # Génération des clients Prisma
 RUN npx prisma generate
