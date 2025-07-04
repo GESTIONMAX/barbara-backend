@@ -26,7 +26,8 @@ process.on('unhandledRejection', (reason, promise) => {
 // Routes
 import packRoutes from './routes/packRoutes';
 import authRoutes from './routes/authRoutes';
-import adminRoutes from './routes/adminRoutes';
+// Import du fichier JS de réinitialisation (compatible avec TypeScript grâce au require)
+const resetRouter = require('./routes/auth.reset');
 
 // Middleware
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -70,7 +71,7 @@ app.get('/health', (req, res) => {
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/packs', packRoutes);
-app.use('/api/admin', adminRoutes); // Route temporaire pour administration
+app.use('/api/reset', resetRouter); // Route temporaire pour réinitialisation de mot de passe
 
 // Middleware d'erreur (à la fin)
 app.use(notFound);
