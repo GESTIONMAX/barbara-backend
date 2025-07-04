@@ -120,48 +120,26 @@ netstat -tuln || echo "netstat non disponible"
 echo "Configuration IP:"
 ip route || echo "ip route non disponible"
 
-# Essayer les configurations de base de données étendues
-export DATABASE_URL_ORIG="$DATABASE_URL"
+# Conserver l'URL de base de données configurée
+echo "Utilisation de l'URL de base de données configurée: $(echo "$DATABASE_URL" | cut -c 1-25)... (tronquée pour sécurité)"
 
-# Vérifier si DB_PASSWORD est défini
-if [ -z "$DB_PASSWORD" ]; then
-    echo "ATTENTION: Variable DB_PASSWORD non définie, utilisation du mot de passe par défaut (non recommandé en production)"
-    DB_PASSWORD="password"
-fi
-
-# Option 1: Utiliser le conteneur Docker directement
-echo "Test option 1: Connexion directe au conteneur PostgreSQL"
-export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres"
+# Vérifier si la base de données est accessible
+echo "Test de connexion à la base de données..."
 echo "SELECT 1;" | npx prisma db execute --stdin
-OPTION1_STATUS=$?
 
-# Option 2: Utiliser l'adresse IP interne du réseau Docker
-echo "Test option 2: Utiliser l'adresse IP interne (10.0.1.6)"
-export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@10.0.1.6:5432/postgres"
-echo "SELECT 1;" | npx prisma db execute --stdin
-OPTION2_STATUS=$?
-
-# Option 3: Utiliser localhost
-echo "Test option 3: Utiliser localhost"
-export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@localhost:5432/postgres"
-echo "SELECT 1;" | npx prisma db execute --stdin
-OPTION3_STATUS=$?
-
-# Vérifier les résultats
-if [ $OPTION1_STATUS -eq 0 ] || [ $OPTION2_STATUS -eq 0 ] || [ $OPTION3_STATUS -eq 0 ]; then
+if [ $? -eq 0 ]; then
     echo "✅ Connexion à la base de données réussie!"
-    # Conserver l'URL qui fonctionne
-    if [ $OPTION1_STATUS -eq 0 ]; then
-        echo "Configuration 1 retenue"
-    elif [ $OPTION2_STATUS -eq 0 ]; then
-        echo "Configuration 2 retenue"
-    else
-        echo "Configuration 3 retenue"
-    fi
 else
-    echo "❌ ERREUR: Échec de toutes les tentatives de connexion à la base de données"
-    # Rétablir l'URL d'origine
-    export DATABASE_URL="$DATABASE_URL_ORIG"
+    echo "❌ ERREUR: Échec de la connexion à la base de données"
+    echo "⚠️ Vérifiez que l'URL est correcte et que la base de données est accessible depuis ce conteneur"
+    # Informations de débogage
+    echo "Information sur la connexion réseau:"
+    echo "Routes disponibles:"
+    ip route
+    echo "Ports ouverts à l'écoute:"
+    netstat -tuln || echo "netstat non disponible"
+    echo "Test de connectivité vers 91.99.22.54 sur le port 5433:"
+    nc -zv 91.99.22.54 5433 || echo "nc (netcat) non disponible ou connexion échouée"
 fi
 
 # Démarrer l'application avec redirection des erreurs
