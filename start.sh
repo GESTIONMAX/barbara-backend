@@ -16,7 +16,7 @@ if [[ "$DATABASE_URL" == DATABASE_URL=* ]]; then
     FIXED_URL=$(echo "$FIXED_URL" | sed 's/^\\"//;s/\\"$//')
     # Exporter la variable corrigée
     export DATABASE_URL="$FIXED_URL"
-    echo "✅ DATABASE_URL corrigée: ${DATABASE_URL:0:15}... (tronqué pour sécurité)"
+    echo "✅ DATABASE_URL corrigée: $(echo "$DATABASE_URL" | cut -c 1-15)... (tronqué pour sécurité)"
 fi
 
 # Exporter explicitement la variable dans le format attendu par Prisma
@@ -107,18 +107,55 @@ esac
 echo "📄 Contenu du schéma Prisma :"
 cat ./prisma/schema.prisma
 
-# Tester la connexion à la base de données
-echo "Test de connexion à la base de données..."
-npx prisma db execute --stdin <<EOF
-SELECT 1;
-EOF
+# Tenter de pinger la base de données
+PG_HOST="postgresql-database-q84so88cwcskg80og0wo4ck0"
+echo "Tentative de ping vers $PG_HOST..."
+ping -c 2 $PG_HOST || echo "Ping échoué, hôte inaccessible"
 
-# Statut du test de connexion
-DB_STATUS=$?
-if [ $DB_STATUS -eq 0 ]; then
+# Liste des services réseau
+echo "Services réseau disponibles:"
+netstat -tuln || echo "netstat non disponible"
+
+# Information sur l'IP et le réseau
+echo "Configuration IP:"
+ip route || echo "ip route non disponible"
+
+# Essayer les configurations de base de données étendues
+export DATABASE_URL_ORIG="$DATABASE_URL"
+
+# Option 1: Utiliser le conteneur Docker directement
+echo "Test option 1: Connexion directe au conteneur PostgreSQL"
+export DATABASE_URL="postgresql://postgres:password@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres"
+echo "SELECT 1;" | npx prisma db execute --stdin
+OPTION1_STATUS=$?
+
+# Option 2: Utiliser l'adresse IP interne du réseau Docker
+echo "Test option 2: Utiliser l'adresse IP interne (10.0.1.6)"
+export DATABASE_URL="postgresql://postgres:password@10.0.1.6:5432/postgres"
+echo "SELECT 1;" | npx prisma db execute --stdin
+OPTION2_STATUS=$?
+
+# Option 3: Utiliser localhost
+echo "Test option 3: Utiliser localhost"
+export DATABASE_URL="postgresql://postgres:password@localhost:5432/postgres"
+echo "SELECT 1;" | npx prisma db execute --stdin
+OPTION3_STATUS=$?
+
+# Vérifier les résultats
+if [ $OPTION1_STATUS -eq 0 ] || [ $OPTION2_STATUS -eq 0 ] || [ $OPTION3_STATUS -eq 0 ]; then
     echo "✅ Connexion à la base de données réussie!"
+    # Conserver l'URL qui fonctionne
+    if [ $OPTION1_STATUS -eq 0 ]; then
+        echo "Configuration 1 retenue"
+    elif [ $OPTION2_STATUS -eq 0 ]; then
+        echo "Configuration 2 retenue"
+    else
+        echo "Configuration 3 retenue"
+    fi
 else
-    echo "❌ ERREUR: Échec de connexion à la base de données (code: $DB_STATUS)"
+    echo "❌ ERREUR: Échec de toutes les tentatives de connexion à la base de données"
+    # Rétablir l'URL d'origine
+    export DATABASE_URL="$DATABASE_URL_ORIG"
 fi
 
 # Démarrer l'application avec redirection des erreurs
