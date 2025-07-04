@@ -26,6 +26,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Routes
 import packRoutes from './routes/packRoutes';
 import authRoutes from './routes/authRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Middleware
 import { errorHandler, notFound } from './middleware/errorHandler';
@@ -69,6 +70,7 @@ app.get('/health', (req, res) => {
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/packs', packRoutes);
+app.use('/api/admin', adminRoutes); // Route temporaire pour administration
 
 // Middleware d'erreur (à la fin)
 app.use(notFound);
