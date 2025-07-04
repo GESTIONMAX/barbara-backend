@@ -1,9 +1,9 @@
 #!/bin/sh
 echo "=== DÉMARRAGE DE BARBARA BACKEND ==="
 echo "Vérification des variables d'environnement essentielles :"
-echo "DATABASE_URL: ${DATABASE_URL:0:15}... (tronqué pour sécurité)"
+echo "DATABASE_URL: $(echo "$DATABASE_URL" | cut -c 1-15)... (tronqué pour sécurité)"
 echo "NODE_ENV: $NODE_ENV"
-echo "JWT_SECRET: ${JWT_SECRET:0:3}... (tronqué pour sécurité)"
+echo "JWT_SECRET: $(echo "$JWT_SECRET" | cut -c 1-3)... (tronqué pour sécurité)"
 echo "FRONTEND_URL: $FRONTEND_URL"
 echo "PORT: $PORT"
 
@@ -20,15 +20,19 @@ if [[ "$DATABASE_URL" == DATABASE_URL=* ]]; then
 fi
 
 # Exporter explicitement la variable dans le format attendu par Prisma
-if [[ "$DATABASE_URL" != postgresql://* && "$DATABASE_URL" != postgres://* ]]; then
+case "$DATABASE_URL" in
+  postgresql://*|postgres://*) 
+    echo "URL de base de données valide détectée"
+    ;;
+  *)
     echo "⚠️ DATABASE_URL n'a pas le bon format, essai de plusieurs configurations..."
     
     # Initialiser la variable de succès
     CONNECTION_SUCCESS=0
     
     # Liste de potentiels noms d'hôtes à tester
-    HOSTS=("postgresql-database-q84so88cwcskg80og0wo4ck0" "postgres" "coolify-postgres" "postgresql" "postgres-database" "database" "q84so88cwcskg80og0wo4ck0" "localhost")
-    PORTS=("5432" "5433" "5434")
+    HOSTS="postgresql-database-q84so88cwcskg80og0wo4ck0 postgres coolify-postgres postgresql postgres-database database q84so88cwcskg80og0wo4ck0 localhost"
+    PORTS="5432 5433 5434"
     
     # Afficher les informations réseau pour diagnostiquer les problèmes de connexion
     echo "--- Informations réseau ---"
@@ -40,36 +44,39 @@ if [[ "$DATABASE_URL" != postgresql://* && "$DATABASE_URL" != postgres://* ]]; t
     echo "--- Test de connexion avec l'URL publique ---"
     if [ ! -z "${POSTGRES_URL_PUBLIC}" ]; then
         PUBLIC_URL=$(echo "${POSTGRES_URL_PUBLIC}" | sed 's/^POSTGRES_URL_PUBLIC=//')
-        if [[ "$PUBLIC_URL" == postgresql://* || "$PUBLIC_URL" == postgres://* ]]; then
+        case "$PUBLIC_URL" in
+          postgresql://*|postgres://*)
             export DATABASE_URL="$PUBLIC_URL"
-            echo "Essai avec l'URL publique: ${DATABASE_URL:0:15}... (tronqué pour sécurité)"
-            npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1
+            echo "Essai avec l'URL publique: $(echo "$DATABASE_URL" | cut -c 1-15)... (tronqué pour sécurité)"
+            echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1
             if [ $? -eq 0 ]; then
                 echo "✅ Connexion réussie avec l'URL publique!"
                 CONNECTION_SUCCESS=1
             fi
-        fi
+            ;;
+        esac
     else
         echo "Variable POSTGRES_URL_PUBLIC non définie"
     fi
     
     # Si la connexion avec l'URL publique a échoué, tester d'autres combinaisons
     if [ $CONNECTION_SUCCESS -eq 0 ]; then
-        # Format de base de l'URL
-        URL_BASE="postgresql://postgres:${DB_PASSWORD}@HOST:PORT/postgres"
-        
         # Tester chaque combinaison d'hôte et de port
-        for host in "${HOSTS[@]}"; do
-            for port in "${PORTS[@]}"; do
-                CURRENT_URL=${URL_BASE/HOST/$host}
-                CURRENT_URL=${CURRENT_URL/PORT/$port}
+        HOST_FOUND=0
+        for host in $HOSTS; do
+            if [ $HOST_FOUND -eq 1 ]; then
+                break
+            fi
+            for port in $PORTS; do
+                URL_TEST="postgresql://postgres:${DB_PASSWORD}@${host}:${port}/postgres"
                 echo "Essai avec: $host:$port"
-                export DATABASE_URL=$CURRENT_URL
-                npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1
+                export DATABASE_URL=$URL_TEST
+                echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1
                 if [ $? -eq 0 ]; then
                     echo "✅ Connexion réussie avec l'hôte: $host sur le port $port"
                     CONNECTION_SUCCESS=1
-                    break 2
+                    HOST_FOUND=1
+                    break
                 fi
             done
         done
@@ -82,20 +89,19 @@ if [[ "$DATABASE_URL" != postgresql://* && "$DATABASE_URL" != postgres://* ]]; t
         # Tester avec l'URL interne et le SSL désactivé
         echo "Test avec SSL désactivé"
         export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres?sslmode=disable"
-        npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1
+        echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo "✅ Connexion réussie avec SSL désactivé"
             CONNECTION_SUCCESS=1
-        fi
-        
-        # Si toujours pas de connexion, tenter la configuration de test direct
-        if [ $CONNECTION_SUCCESS -eq 0 ]; then
+        else
+            # Si toujours pas de connexion, tenter la configuration de test direct
             echo "Dernier essai avec l'URL par défaut et affichage des erreurs détaillées"
             export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres"
-            npx prisma db execute --stdin <<< "SELECT 1;"
+            echo "SELECT 1;" | npx prisma db execute --stdin
         fi
     fi
-fi
+    ;;
+esac
 
 # Vérifier le contenu du schéma Prisma
 echo "📄 Contenu du schéma Prisma :"
