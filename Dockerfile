@@ -26,8 +26,8 @@ RUN npm run build
 FROM node:18-alpine AS production
 WORKDIR /app
 
-# Installation des dépendances système pour Prisma
-RUN apk add --no-cache openssl
+# Installation des dépendances système pour Prisma et health check
+RUN apk add --no-cache openssl wget
 
 # Copie des fichiers nécessaires depuis l'étape de build
 COPY --from=builder /app/package*.json ./
@@ -40,6 +40,10 @@ ENV NODE_ENV=production
 
 # Exposition du port
 EXPOSE 3000
+
+# Configuration du health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
 # Copie du script de démarrage
 COPY start.sh ./
