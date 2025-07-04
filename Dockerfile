@@ -39,5 +39,9 @@ ENV NODE_ENV=production
 # Exposition du port
 EXPOSE 3000
 
+# Copier le script de démarrage
+COPY start.sh ./
+RUN chmod +x ./start.sh
+
 # Commande de démarrage
-CMD ["npm", "start"]
+CMD ["/bin/sh", "./start.sh"]
