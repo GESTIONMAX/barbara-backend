@@ -1,6 +1,8 @@
 FROM node:18-alpine AS builder
-
 WORKDIR /app
+
+# Installation des dépendances système pour Prisma
+RUN apk add --no-cache openssl1.1-compat
 
 # Copie des fichiers de dépendances
 COPY package*.json ./
@@ -20,8 +22,10 @@ RUN npm run build
 
 # Étape de production
 FROM node:18-alpine AS production
-
 WORKDIR /app
+
+# Installation des dépendances système pour Prisma
+RUN apk add --no-cache openssl1.1-compat
 
 # Copie des fichiers nécessaires depuis l'étape de build
 COPY --from=builder /app/package*.json ./
