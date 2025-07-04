@@ -2,8 +2,26 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+console.log('📋 Démarrage de Barbara Backend...');
+console.log('🔧 Chargement de la configuration...');
+
 // Configuration
 dotenv.config();
+
+// Afficher quelques informations de configuration (sans données sensibles)
+console.log(`📌 NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`📌 FRONTEND_URL: ${process.env.FRONTEND_URL}`);
+console.log(`📌 DATABASE_URL: ${process.env.DATABASE_URL ? '***configured***' : '***missing***'}`);
+console.log(`📌 JWT_SECRET: ${process.env.JWT_SECRET ? '***configured***' : '***missing***'}`);
+
+// Gestion globale des erreurs non capturées
+process.on('uncaughtException', (error) => {
+  console.error('❌ ERREUR NON CAPTURÉE:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ PROMESSE REJETÉE NON GÉRÉE:', { reason, promise });
+});
 
 // Routes
 import packRoutes from './routes/packRoutes';
