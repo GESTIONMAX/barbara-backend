@@ -19,6 +19,8 @@ model User {
   claims           claims[]
   conseil_requests conseil_requests[]
   reservations     reservations[]
+  passwordResets   PasswordReset[]
+  mustChangePassword Boolean          @default(false)
 
   @@map("users")
 }
@@ -168,4 +170,17 @@ enum ReservationStatus {
 enum UserRole {
   user
   admin
+}
+
+model PasswordReset {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires     DateTime
+  createdAt   DateTime @default(now())
+  used        Boolean  @default(false)
+
+  @@index([token])
+  @@map("password_resets")
 }
