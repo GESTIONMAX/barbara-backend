@@ -123,21 +123,27 @@ ip route || echo "ip route non disponible"
 # Essayer les configurations de base de données étendues
 export DATABASE_URL_ORIG="$DATABASE_URL"
 
+# Vérifier si DB_PASSWORD est défini
+if [ -z "$DB_PASSWORD" ]; then
+    echo "ATTENTION: Variable DB_PASSWORD non définie, utilisation du mot de passe par défaut (non recommandé en production)"
+    DB_PASSWORD="password"
+fi
+
 # Option 1: Utiliser le conteneur Docker directement
 echo "Test option 1: Connexion directe au conteneur PostgreSQL"
-export DATABASE_URL="postgresql://postgres:password@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres"
+export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@postgresql-database-q84so88cwcskg80og0wo4ck0:5432/postgres"
 echo "SELECT 1;" | npx prisma db execute --stdin
 OPTION1_STATUS=$?
 
 # Option 2: Utiliser l'adresse IP interne du réseau Docker
 echo "Test option 2: Utiliser l'adresse IP interne (10.0.1.6)"
-export DATABASE_URL="postgresql://postgres:password@10.0.1.6:5432/postgres"
+export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@10.0.1.6:5432/postgres"
 echo "SELECT 1;" | npx prisma db execute --stdin
 OPTION2_STATUS=$?
 
 # Option 3: Utiliser localhost
 echo "Test option 3: Utiliser localhost"
-export DATABASE_URL="postgresql://postgres:password@localhost:5432/postgres"
+export DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@localhost:5432/postgres"
 echo "SELECT 1;" | npx prisma db execute --stdin
 OPTION3_STATUS=$?
 
