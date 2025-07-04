@@ -7,11 +7,14 @@ RUN apk add --no-cache openssl
 # Copie des fichiers de dépendances
 COPY package*.json ./
 
+# Modification du package.json pour supprimer le script husky
+RUN sed -i '/{\s*"prepare":\s*"husky install"/d' package.json
+
 # Copie de tous les fichiers source d'abord
 COPY . .
 
-# Installation des dépendances en désactivant les hooks husky
-RUN npm install --ignore-scripts
+# Installation des dépendances
+RUN npm install
 
 # Génération des clients Prisma
 RUN npx prisma generate
